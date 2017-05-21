@@ -1,0 +1,41 @@
+{
+  "name": "record-table",
+  "version": "0.9.1",
+  "description": "Reactjs CRUD table component for Record",
+  "main": "dist/record-table.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/koiketakayuki/record-table.git"
+  },
+  "keywords": [
+    "ameba"
+  ],
+  "author": "koiketakayuki",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/koiketakayuki/record-table/issues"
+  },
+  "homepage": "https://github.com/koiketakayuki/record-table#readme",
+  "devDependencies": {
+    "ameba-core": "^0.9.9",
+    "ameba-util": "^0.9.1",
+    "babel-core": "^6.24.1",
+    "babel-loader": "^7.0.0",
+    "babel-plugin-add-module-exports": "^0.2.1",
+    "babel-preset-es2015": "^6.24.1",
+    "babel-preset-react": "^6.24.1",
+    "dateformat": "^2.0.0",
+    "isomorphic-style-loader": "^2.0.0",
+    "material-ui": "^0.18.1",
+    "prop-types": "^15.5.10",
+    "react": "^15.5.4",
+    "react-dom": "^15.5.4",
+    "react-router": "^4.1.1",
+    "react-router-dom": "^4.1.1",
+    "react-tap-event-plugin": "^2.0.1",
+    "webpack": "^2.5.1"
+  }
+}
