@@ -17,7 +17,7 @@ import { createRecord } from 'ameba-util';
 
 injectTapEventPlugin();
 
-const statusType = enumerationType('status', 'ステータス', ['受領']);
+const statusType = enumerationType('status', 'ステータス', ['受領', 'た']);
 
 const PaymentInformationRequest = recordType('PaymentInformationRequest', '口振請求記録', [
   textField('shopId', '店舗ID'),
@@ -30,7 +30,9 @@ ReactDOM.render((
   <BrowserRouter>
     <Route path="/" component={() =>
       <MuiThemeProvider muiTheme={getMuiTheme()}>
-        <RecordTable recordType={PaymentInformationRequest} dataSourceUrl="http://127.0.0.1:3000" />
+        <RecordTable recordType={PaymentInformationRequest}
+          dataSourceUrl="http://127.0.0.1:3000"
+          sortCondition={{ date:  -1 }}/>
       </MuiThemeProvider>}/>
   </BrowserRouter>
   ),

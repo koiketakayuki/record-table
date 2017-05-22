@@ -23,7 +23,7 @@ const formStyle = {
   'verticalAlign': 'middle'
 };
 
-export default class RecordTable extends Component {
+export default class RecordPresenterDialog extends Component {
 
   constructor(props) {
     super(props);
@@ -100,7 +100,7 @@ export default class RecordTable extends Component {
         return <div style={formStyle}>
                  <DatePicker
                    hintText={field.name}
-                   defaultDate={this.props.record ? new Date(this.props.record[field.id]) : null}
+                   defaultDate={this.props.record ? new Date(this.props.record[field.id]) : new Date()}
                    onChange={(e, value) => this.updateValue(field.id, value.toString())}/>
                </div>;
     }
@@ -138,7 +138,7 @@ export default class RecordTable extends Component {
   }
 }
 
-RecordTable.propTypes = {
+RecordPresenterDialog.propTypes = {
   dataSourceUrl: PropTypes.string.isRequired,
   recordType: PropTypes.object.isRequired,
   record: PropTypes.object,
@@ -148,7 +148,7 @@ RecordTable.propTypes = {
   open: PropTypes.bool
 };
 
-RecordTable.defaultProps = {
+RecordPresenterDialog.defaultProps = {
   open: false,
   record: {}
 };

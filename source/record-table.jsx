@@ -5,8 +5,11 @@ import ContentAdd from 'material-ui/svg-icons/content/add';
 import FlatButton from 'material-ui/FlatButton';
 import dateFormat from'dateformat';
 import AppBar from 'material-ui/AppBar';
-import RecordCreationDialog from './record-creation-dialog';
+import RecordPresenterDialog from './record-presenter-dialog';
+import RecordDeleteConfirmationDialog from './record-delete-confirmation-dialog';
+import IconButton from 'material-ui/IconButton';
 import DeleteIcon from 'material-ui/svg-icons/action/delete';
+import ReactPaginate from 'react-paginate';
 import { getRootType, getHierarchyFields } from 'ameba-util';
 import { Types, Fields } from 'ameba-core';
 
@@ -19,7 +22,7 @@ import {
   TableRowColumn,
 } from 'material-ui/Table';
 
-const DEFAULT_DISPLAY_COUNT = 5;
+const DEFAULT_DISPLAY_COUNT = 10;
 const DATE_FORMAT = 'yyyy年m月d日 H時MM分';
 
 function transformFieldValue(fieldValue, fieldType) {
@@ -37,11 +40,23 @@ export default class RecordTable extends Component {
     this.recordType = props.recordType;
     this.rootTypeId = getRootType(this.recordType).id;
     this.hierarchyFields = getHierarchyFields(this.recordType).filter(f => f.id !== Fields.type.id);
-    this.state = { records: [], open: false, count: 0, searchCondition: {}, targetRecord: {} };
+    this.state = {
+      records: [],
+      isCreateOrEditMode: false,
+      isDeleteConfimation: false,
+      recordCount: 0,
+      pageCount: 0,
+      maxPageCount: 0,
+      startCount: 1,
+      endCount: this.props.displayCount,
+      searchCondition: {},
+      targetRecord: {} };
 
-    this.goToCreationMenu = this.goToCreationMenu.bind(this);
-    this.goToEditionMenu = this.goToEditionMenu.bind(this);
+    this.goToCreateMenu = this.goToCreateMenu.bind(this);
+    this.goToEditMenu = this.goToEditMenu.bind(this);
     this.goToRecordList = this.goToRecordList.bind(this);
+    this.goToDeleteMenu = this.goToDeleteMenu.bind(this);
+    this.handlePageClick = this.handlePageClick.bind(this);
   }
 
   componentDidMount() {
@@ -49,8 +64,9 @@ export default class RecordTable extends Component {
   }
 
   initializeRecord() {
-    this.getRecordCount().then((count) => {
-      this.setState({ count });
+    this.getRecordCount().then((recordCount) => {
+      const maxPageCount = Math.ceil(recordCount / this.props.displayCount);
+      this.setState({ recordCount, maxPageCount });
     });
     this.getRecords().then(records => {
       this.setState({ records });
@@ -71,8 +87,8 @@ export default class RecordTable extends Component {
     });
   }
 
-  getRecords(pageNumber) {
-    const offset = this.props.displayCount * (pageNumber ? pageNumber : 1);
+  getRecords(pageCount) {
+    const offset = this.props.displayCount * (pageCount || this.state.pageCount);
 
     return new Promise((success, failure) => {
       $.post(`${this.props.dataSourceUrl}/read`,
@@ -81,8 +97,8 @@ export default class RecordTable extends Component {
         condition: this.state.searchCondition,
         option: {
           limit: this.props.displayCount,
-          offset: offset,
-          sort: { date: -1 }
+          skip: offset,
+          sort: this.props.sortCondition
         }
       },
       res => {
@@ -95,23 +111,46 @@ export default class RecordTable extends Component {
     });
   }
 
-  goToCreationMenu() {
+  goToCreateMenu() {
     this.setState({
-      open: true,
+      isCreateOrEditMode: true,
       targetRecord: null
     });
   };
 
-  goToEditionMenu(index) {
+  goToEditMenu(index) {
+    if (!this.state.isDeleteConfimation) {
+      this.setState({
+        isCreateOrEditMode: true,
+        isDeleteConfimation: false,
+        targetRecord: this.state.records[index],
+      });
+    }
+  }
+
+  goToDeleteMenu(record) {
     this.setState({
-      open: true,
-      targetRecord: this.state.records[index],
+      isCreateOrEditMode: false,
+      isDeleteConfimation: true,
+      targetRecord: record
     });
   }
 
   goToRecordList() {
-    this.setState({ open: false });
+    this.setState({
+      isCreateOrEditMode: false,
+      isDeleteConfimation: false
+    });
   };
+
+  handlePageClick(pageCount) {
+    this.getRecords(pageCount).then(records => {
+      const displayCount = this.props.displayCount;
+      const startCount = pageCount * displayCount + 1;
+      const endCount = Math.min(startCount + displayCount, this.state.recordCount);
+      this.setState({ records, pageCount, startCount, endCount });
+    });
+  }
 
   render() {
     return (
@@ -126,10 +165,20 @@ export default class RecordTable extends Component {
           labelPosition="after"
           primary={true}
           icon={<ContentAdd />}
-          onTouchTap={this.goToCreationMenu}
+          onTouchTap={this.goToCreateMenu}
         />
-        <RecordCreationDialog
-          open={this.state.open}
+        <RecordDeleteConfirmationDialog
+          open={this.state.isDeleteConfimation}
+          recordType={this.props.recordType}
+          record={this.state.targetRecord}
+          dataSourceUrl={this.props.dataSourceUrl}
+          onDelete={(res) => {
+            this.goToRecordList();
+            this.initializeRecord();
+          }}
+          onCancel={this.goToRecordList}/>
+        <RecordPresenterDialog
+          open={this.state.isCreateOrEditMode}
           recordType={this.props.recordType}
           record={this.state.targetRecord}
           dataSourceUrl={this.props.dataSourceUrl}
@@ -140,15 +189,15 @@ export default class RecordTable extends Component {
           }}
           onCancel={this.goToRecordList}/>
         <div>
-          全<span>{this.state.count}</span>件
+          全<span>{this.state.recordCount}</span>件 <span>{this.state.startCount}</span> ~ <span>{this.state.endCount}</span>件を表示
         </div>
-        <Table onRowSelection={(i) => this.goToEditionMenu(i)}>
+        <Table onRowSelection={index => this.goToEditMenu(index)}>
             <TableHeader displaySelectAll={false}>
               <TableRow>
                 {this.hierarchyFields.map(f =>
                   <TableHeaderColumn>{f.name || f.id}</TableHeaderColumn>
                 )}
-                <TableHeaderColumn />
+                <TableHeaderColumn>削除</TableHeaderColumn>
               </TableRow>
             </TableHeader>
             <TableBody displayRowCheckbox={false}>
@@ -157,11 +206,27 @@ export default class RecordTable extends Component {
                 {this.hierarchyFields.map(f =>
                   <TableRowColumn>{transformFieldValue(r[f.id], f.fieldType)}</TableRowColumn>
                 )}
-                <TableRowColumn><DeleteIcon/></TableRowColumn>
+                <TableRowColumn>
+                  <IconButton onTouchTap={(e) => {
+                    this.goToDeleteMenu(r)
+                  }}>
+                    <DeleteIcon/>
+                  </IconButton>
+                </TableRowColumn>
               </TableRow>)}
             </TableBody>
         </Table>
       </div>
+      {(this.state.maxPageCount > 0) ?
+        <ReactPaginate previousLabel={"previous"}
+                  nextLabel={"next"}
+                  breakLabel={<a href="">...</a>}
+                  pageCount={this.state.maxPageCount}
+                  marginPagesDisplayed={2}
+                  pageRangeDisplayed={3}
+                  onPageChange={o => this.handlePageClick(o.selected)}
+                  containerClassName={"pagination"}
+                  activeClassName={"active"} /> : null}
     </div>);
   }
 }
@@ -169,9 +234,11 @@ export default class RecordTable extends Component {
 RecordTable.propTypes = {
   dataSourceUrl: PropTypes.string.isRequired,
   recordType: PropTypes.object.isRequired,
-  displayCount: PropTypes.number
+  displayCount: PropTypes.number,
+  sortCondition: PropTypes.object
 };
 
 RecordTable.defaultProps = {
-  displayCount: DEFAULT_DISPLAY_COUNT
+  displayCount: DEFAULT_DISPLAY_COUNT,
+  sortCondition: {}
 };
